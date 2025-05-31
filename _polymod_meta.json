@@ -1,0 +1,13 @@
+{
+    "title": "Hit Error Meter",
+    "description": "Adds a hit error meter to the game.",
+    "contributors": [
+        {
+            "name": "IronImur",
+            "role": "Programmer"
+        }
+    ],
+    "api_version": "0.6.4",
+    "mod_version": "1.0.0",
+    "license": "CC BY-NC-ND 4.0"
+}

@@ -1,0 +1,79 @@
+import funkin.modding.events.ScriptEvent;
+import funkin.modding.module.Module;
+import funkin.ui.options.OptionsState;
+import funkin.ui.options.PreferencesMenu;
+
+import flixel.util.FlxSave;
+
+import Std;
+
+class HitErrorMeterPrefs extends Module
+{
+    var save:FlxSave;
+
+    function new():Void
+    {
+        super("Hit Error Meter Preferences", 0);
+
+        save = new FlxSave();
+        save.bind("HitErrorMeterPreferences", "IronImur");
+
+        if (save.data.enableHitErrorMeter == null)
+            save.data.enableHitErrorMeter = true;
+
+        if (save.data.fadingJudgements == null)
+            save.data.fadingJudgements = "All";
+
+        if (save.data.fadeDuration == null)
+            save.data.fadeDuration = 3.0;
+
+        if (save.data.displayGhostMisses == null)
+            save.data.displayGhostMisses = false;
+
+        save.flush();
+    }
+
+    override function onStateChangeEnd(event:StateChangeScriptEvent):Void
+    {
+        super.onStateChangeEnd(event);
+
+        if (Std.isOfType(event.targetState, OptionsState))
+        {
+            var preferencesMenu:PreferencesMenu = event.targetState.optionsCodex.pages.get("preferences");
+            if (preferencesMenu != null)
+            {
+                preferencesMenu.createPrefItemCheckbox("Enable Hit Error Meter", "If disabled, hit error meter will be hidden from the screen.", function(value:Bool):Void {
+                    save.data.enableHitErrorMeter = value;
+                    save.flush();
+                }, save.data.enableHitErrorMeter);
+
+                preferencesMenu.createPrefItemEnum("Fade Judgements", "Judgements that will be faded after a while during the song.", [
+                    "Only sicks" => "OnlySicks",
+                    "Nothing" => "Nothing",
+                    "Sicks and goods" => "OnlySicksAndGoods",
+                    "All" => "All"
+                ], function(key:String, value:String):Void {
+                    save.data.fadingJudgements = value;
+                    save.flush();
+                }, switch(save.data.fadingJudgements)
+                {
+                    case "OnlySicks": "Only sicks";
+                    case "Nothing": "Nothing";
+                    case "OnlySicksAndGoods": "Only sicks and goods";
+                    case "All": "All";
+                });
+
+                preferencesMenu.createPrefItemNumber("Fade Duration", "Duration of judgements' fading (in seconds).", function(value:Float):Void {
+                    save.data.fadeDuration = value;
+                }, function(value:Float):String {
+                    return (value + "s");
+                }, save.data.fadeDuration, 1.0, 5.0, 0.5, 1);
+
+                preferencesMenu.createPrefItemCheckbox("Display Ghost Misses", "If enabled, your ghost misses will be displayed on the meter.", function(value:Bool):Void {
+                    save.data.displayGhostMisses = value;
+                    save.flush();
+                }, save.data.displayGhostMisses);
+            }
+        }
+    }
+}

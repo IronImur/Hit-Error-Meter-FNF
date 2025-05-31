@@ -1,0 +1,333 @@
+import funkin.graphics.FunkinSprite;
+import funkin.modding.events.ScriptEvent;
+import funkin.modding.module.Module;
+import funkin.play.PlayState;
+
+import flixel.tweens.FlxEase;
+import flixel.tweens.FlxTween;
+import flixel.util.FlxSave;
+import flixel.FlxG;
+
+import Std;
+
+class HitErrorMeter extends Module
+{
+    var JUDGEMENTS_COLORS:Map<String, FlxColor> = [
+        "sick" => 0xFF2DE356,
+        "good" => 0xFF25B5EB,
+        "bad" => 0xFFE6B72B,
+        "shit" => 0xFFD23534,
+        "miss" => 0xFFA244D5
+    ];
+
+    var playState:PlayState;
+
+    var hitErrorMeterBG:FunkinSprite;
+    var hitErrorMeterPointer:FunkinSprite;
+    var hitErrorMeterJudgements:Array<FunkinSprite>;
+
+    var hitErrorMeterPointerTween:FlxTween;
+    var hitErrorMeterJudgementsTweens:Array<FlxTween>;
+
+    var save:FlxSave;
+
+    function new():Void
+    {
+        super("Hit Error Meter", 1);
+
+        save = new FlxSave();
+        save.bind("HitErrorMeterPreferences", "IronImur");
+    }
+
+    function initHitErrorMeter():Void
+    {
+        if (playState == null || save.data.enableHitErrorMeter == false)
+            return;
+
+        hitErrorMeterJudgements = [];
+
+        hitErrorMeterPointerTween = null;
+        hitErrorMeterJudgementsTweens = [];
+
+        hitErrorMeterBG = FunkinSprite.create(1215, 0, "hitErrorMeterBG");
+        hitErrorMeterBG.scale.set(0.6, 0.6);
+        hitErrorMeterBG.updateHitbox();
+        hitErrorMeterBG.screenCenter(0x10);
+        hitErrorMeterBG.scrollFactor.set(0, 0);
+        hitErrorMeterBG.zIndex = 851;
+        playState.add(hitErrorMeterBG);
+
+        hitErrorMeterPointer = FunkinSprite.create(1240, 0, "hitErrorMeterPointer");
+        hitErrorMeterPointer.scale.set(0.6, 0.6);
+        hitErrorMeterPointer.updateHitbox();
+        hitErrorMeterPointer.screenCenter(0x10);
+        hitErrorMeterPointer.scrollFactor.set(0, 0);
+        hitErrorMeterPointer.zIndex = 852;
+        playState.add(hitErrorMeterPointer);
+
+        hitErrorMeterBG.cameras = [playState.camHUD];
+        hitErrorMeterPointer.cameras = [playState.camHUD];
+    }
+
+    function cleanup():Void
+    {
+        if (playState == null || save.data.enableHitErrorMeter == false)
+            return;
+
+        if (hitErrorMeterBG != null)
+        {
+            playState.remove(hitErrorMeterBG);
+            hitErrorMeterBG.destroy();
+        }
+
+        if (hitErrorMeterPointer != null)
+        {
+            if (hitErrorMeterPointerTween != null)
+                hitErrorMeterPointerTween.cancel();
+
+            playState.remove(hitErrorMeterPointer);
+            hitErrorMeterPointer.destroy();
+        }
+
+        clearJudgements();
+    }
+
+    function clearJudgements():Void
+    {
+        if (save.data.enableHitErrorMeter == false)
+            return;
+
+        if (hitErrorMeterJudgements.length > 0)
+        {
+            for (judgementSprite in hitErrorMeterJudgements)
+            {
+                playState.remove(judgementSprite);
+                judgementSprite.destroy();
+            }
+            hitErrorMeterJudgements = [];
+
+            for (judgementTween in hitErrorMeterJudgementsTweens)
+            {
+                judgementTween.cancel();
+            }
+            hitErrorMeterJudgementsTweens = [];
+        }
+    }
+
+    function hasJudgementFading(judgement:String):Bool
+    {
+        var fadingJudgementsPreference:String = save.data.fadingJudgements;
+        if (fadingJudgementsPreference == null)
+            fadingJudgementsPreference = "All";
+        
+        var fadingJudgements:Array<String> = switch(fadingJudgementsPreference) {
+            case "Nothing": [];
+            case "OnlySicks": ["sick"];
+            case "OnlySicksAndGoods": ["sick", "good"];
+            default: ["sick", "good", "bad", "shit", "miss"];
+        };
+        return fadingJudgements.contains(judgement);
+    }
+
+    function buildJudgementSprite(color:FlxColor):FunkinSprite
+    {
+        var judgementSprite:FunkinSprite = FunkinSprite.create(0, 0, "judgementSprite");
+        judgementSprite.scale.set(0.06, 0.06);
+        judgementSprite.updateHitbox();
+        judgementSprite.color = color;
+        judgementSprite.scrollFactor.set(0, 0);
+
+        return judgementSprite;
+    }
+
+    function movePointerByHitDiff(hitDiff:Float, useTween:Bool = True):Void
+    {
+        if (save.data.enableHitErrorMeter == false)
+            return;
+
+        if (hitErrorMeterPointerTween != null)
+            hitErrorMeterPointerTween.cancel();
+
+        var targetY:Float = (FlxG.height / 2) - (hitErrorMeterPointer.height / 2) - (0.6 * hitDiff);
+        hitErrorMeterPointerTween = FlxTween.tween(hitErrorMeterPointer, {y: targetY}, 0.05,
+            {
+                ease: FlxEase.sineOut,
+                onComplete: function(_)
+                {
+                    hitErrorMeterPointerTween = null;
+                }
+            });
+    }
+
+    function displayJudgement(judgement:String, hitDiff:Float):Void
+    {
+        if (playState == null || save.data.enableHitErrorMeter == false)
+            return;
+
+        var judgementSprite:FunkinSprite = buildJudgementSprite(JUDGEMENTS_COLORS[judgement]);
+        judgementSprite.x = 1218;
+        judgementSprite.y = (FlxG.height / 2) - (judgementSprite.height / 2) - (0.6 * hitDiff);
+        judgementSprite.zIndex = 853;
+        judgementSprite.cameras = [playState.camHUD];
+
+        playState.add(judgementSprite);
+        hitErrorMeterJudgements.push(judgementSprite);
+
+        var fadeDuration:Float = save.data.fadeDuration;
+        if (fadeDuration == null)
+            fadeDuration = 3.0;
+
+        var judgementTween:FlxTween;
+        if (!hasJudgementFading(judgement))
+        {
+            judgementTween = FlxTween.color(judgementSprite, 0.5, judgementSprite.color, 0xFFFFFFFF,
+                {
+                    startDelay: (fadeDuration - 0.5),
+                    onComplete: function(_)
+                    {
+                        hitErrorMeterJudgementsTweens.remove(judgementTween);
+                    }
+                });
+        }
+        else
+        {
+            judgementTween = FlxTween.tween(judgementSprite, {alpha: 0}, fadeDuration,
+                {
+                    onComplete: function(_)
+                    {
+                        hitErrorMeterJudgements.remove(judgementSprite);
+                        hitErrorMeterJudgementsTweens.remove(judgementTween);
+
+                        playState.remove(judgementSprite);
+                        judgementSprite.destroy();
+                    }
+                });
+        }
+        hitErrorMeterJudgementsTweens.push(judgementTween);
+
+        movePointerByHitDiff(hitDiff);
+    }
+
+    override function onStateChangeBegin(event:StateChangeScriptEvent):Void
+    {
+        super.onStateChangeBegin(event);
+
+        if (!Std.isOfType(event.targetState, PlayState) && playState != null)
+        {
+            cleanup();
+            playState = null;
+        }
+    }
+
+    override function onStateChangeEnd(event:StateChangeScriptEvent):Void
+    {
+        super.onStateChangeEnd(event);
+
+        if (Std.isOfType(event.targetState, PlayState) && playState == null)
+        {
+            playState = PlayState.instance;
+            initHitErrorMeter();
+        }
+    }
+
+    override function onDestroy(event:ScriptEvent):Void
+    {
+        if (playState != null)
+        {
+            cleanup();
+            playState = null;
+        }
+
+        super.onDestroy(event);
+    }
+
+    override function onPause(event:PauseScriptEvent):Void
+    {
+        super.onPause(event);
+
+        if (playState != null)
+        {
+            if (hitErrorMeterPointerTween != null)
+            {
+                hitErrorMeterPointerTween.active = false;
+            }
+
+            for (judgementTween in hitErrorMeterJudgementsTweens)
+            {
+                judgementTween.active = false;
+            }
+        }
+    }
+
+    override function onResume(event:ScriptEvent):Void
+    {
+        super.onResume(event);
+
+        if (playState != null)
+        {
+            if (hitErrorMeterPointerTween != null)
+            {
+                hitErrorMeterPointerTween.active = true;
+            }
+
+            for (judgementTween in hitErrorMeterJudgementsTweens)
+            {
+                judgementTween.active = true;
+            }
+        }
+    }
+
+    override function onSongRetry(event:SongRetryEvent):Void
+    {
+        super.onSongRetry(event);
+
+        if (playState != null)
+        {
+            clearJudgements();
+            movePointerByHitDiff(0);
+        }
+    }
+
+    override function onNoteHit(event:HitNoteScriptEvent):Void
+    {
+        super.onNoteHit(event);
+
+        if (playState != null)
+        {
+            if (event.judgement != "perfect" && event.judgement != "miss")
+            {
+                displayJudgement(event.judgement, event.hitDiff);
+            }
+        }
+    }
+
+    override function onNoteMiss(event:NoteScriptEvent):Void
+    {
+        super.onNoteMiss(event);
+
+        if (playState != null)
+        {
+            displayJudgement("miss", 170);
+        }
+    }
+
+    override function onNoteHoldDrop(event:HoldNoteScriptEvent):Void
+    {
+        super.onNoteMiss(event);
+
+        if (playState != null)
+        {
+            displayJudgement("miss", -170);
+        }
+    }
+
+    override function onNoteGhostMiss(event:GhostMissNoteScriptEvent):Void
+    {
+        super.onNoteMiss(event);
+
+        if (playState != null && save.data.displayGhostMisses == true)
+        {
+            displayJudgement("miss", -170);
+        }
+    }
+}
