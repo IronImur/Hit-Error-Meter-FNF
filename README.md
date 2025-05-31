@@ -1,7 +1,7 @@
 # HIT ERROR METER for Friday Night Funkin'
 
 ## About:
-This mod implements simple **HIT ERROR METER** to the game. It's also includes a few options so you can customize your gaming experience.
+This mod implements simple **HIT ERROR METER** to the game. It also includes a few options so you can customize your gaming experience.
 - [Download on GameBanana](https://gamebanana.com/mods/597782).
 
 ## Features:
