@@ -12,17 +12,33 @@ import Std;
 
 class HitErrorMeter extends Module
 {
-    var JUDGEMENTS_COLORS:Map<String, FlxColor> = [
+    var JUDGEMENTS_COLORS_FNF:Map<String, FlxColor> = [
         "sick" => 0xFF2DE356,
         "good" => 0xFF25B5EB,
         "bad" => 0xFFE6B72B,
         "shit" => 0xFFD23534,
         "miss" => 0xFFA244D5
     ];
+    var JUDGEMENTS_COLORS_OSU:Map<String, FlxColor> = [
+        "sick" => 0xFF2EB9EC,
+        "good" => 0xFF4DE110,
+        "bad" => 0xFFD1A44B,
+        "shit" => 0xFFD1A44B,
+        "miss" => 0xFFD1A44B
+    ];
+    var JUDGEMENTS_COLORS_ADOFAI:Map<String, FlxColor> = [
+        "sick" => 0xFF84FB53,
+        "good" => 0xFFFCFF50,
+        "bad" => 0xFFEA6F4A,
+        "shit" => 0xFFEA6F4A,
+        "miss" => 0xFFCE2E0C
+    ];
+    var EARLY_MISS_JUDGEMENT_HIT_DIFF:Float = -170;
+    var LATE_MISS_JUDGEMENT_HIT_DIFF:Float = 170;
 
     var playState:PlayState;
 
-    var hitErrorMeterBG:FunkinSprite;
+    var hitErrorMeterBG:Array<FunkinSprite>;
     var hitErrorMeterPointer:FunkinSprite;
     var hitErrorMeterJudgements:Array<FunkinSprite>;
 
@@ -30,6 +46,9 @@ class HitErrorMeter extends Module
     var hitErrorMeterJudgementsTweens:Array<FlxTween>;
 
     var save:FlxSave;
+
+    var meterLengthMultiplier:Float;
+    var judgementsColors:Map<String, FlxColor>;
 
     function new():Void
     {
@@ -43,29 +62,46 @@ class HitErrorMeter extends Module
     {
         if (playState == null || save.data.enableHitErrorMeter == false)
             return;
+        
+        meterLengthMultiplier = 1.0;
+        if (save.data.meterLength != null)
+            meterLengthMultiplier = save.data.meterLength / 30.0;
+
+        judgementsColors = JUDGEMENTS_COLORS_FNF;
+        if (save.data.meterColorPalette != null)
+        {
+            judgementsColors = switch(save.data.meterColorPalette) {
+                case "osu": JUDGEMENTS_COLORS_OSU;
+                case "ADOFAI": JUDGEMENTS_COLORS_ADOFAI;
+                default: JUDGEMENTS_COLORS_FNF;
+            };
+        }
 
         hitErrorMeterJudgements = [];
 
         hitErrorMeterPointerTween = null;
         hitErrorMeterJudgementsTweens = [];
 
-        hitErrorMeterBG = FunkinSprite.create(1215, 0, "hitErrorMeterBG");
-        hitErrorMeterBG.scale.set(0.6, 0.6);
-        hitErrorMeterBG.updateHitbox();
-        hitErrorMeterBG.screenCenter(0x10);
-        hitErrorMeterBG.scrollFactor.set(0, 0);
-        hitErrorMeterBG.zIndex = 851;
-        playState.add(hitErrorMeterBG);
+        hitErrorMeterBG = buildHitErrorMeterBG();
+        for (i in 0...hitErrorMeterBG.length)
+        {
+            var hitErrorMeterSprite:FunkinSprite = hitErrorMeterBG[i];
+            hitErrorMeterSprite.zIndex = 851 + i;
+            playState.add(hitErrorMeterSprite);
+        }
 
         hitErrorMeterPointer = FunkinSprite.create(1240, 0, "hitErrorMeterPointer");
         hitErrorMeterPointer.scale.set(0.6, 0.6);
         hitErrorMeterPointer.updateHitbox();
-        hitErrorMeterPointer.screenCenter(0x10);
+        hitErrorMeterPointer.y = (FlxG.height / 2) - (hitErrorMeterPointer.height / 2);
         hitErrorMeterPointer.scrollFactor.set(0, 0);
         hitErrorMeterPointer.zIndex = 852;
         playState.add(hitErrorMeterPointer);
 
-        hitErrorMeterBG.cameras = [playState.camHUD];
+        for (hitErrorMeterSprite in hitErrorMeterBG)
+        {
+            hitErrorMeterSprite.cameras = [playState.camHUD];
+        }
         hitErrorMeterPointer.cameras = [playState.camHUD];
     }
 
@@ -74,10 +110,14 @@ class HitErrorMeter extends Module
         if (playState == null || save.data.enableHitErrorMeter == false)
             return;
 
-        if (hitErrorMeterBG != null)
+        if (hitErrorMeterBG.length > 0)
         {
-            playState.remove(hitErrorMeterBG);
-            hitErrorMeterBG.destroy();
+            for (hitErrorMeterSprite in hitErrorMeterBG)
+            {
+                playState.remove(hitErrorMeterSprite);
+                hitErrorMeterSprite.destroy();
+            }
+            hitErrorMeterBG = [];
         }
 
         if (hitErrorMeterPointer != null)
@@ -90,6 +130,9 @@ class HitErrorMeter extends Module
         }
 
         clearJudgements();
+
+        meterLengthMultiplier = 1.0;
+        judgementsColors = JUDGEMENTS_COLORS_FNF;
     }
 
     function clearJudgements():Void
@@ -129,6 +172,46 @@ class HitErrorMeter extends Module
         return fadingJudgements.contains(judgement);
     }
 
+    function buildHitErrorMeterBG():Array<FunkinSprite>
+    {
+        var hitErrorMeterMissesLine:FunkinSprite = new FunkinSprite(1231.5, 258);
+        hitErrorMeterMissesLine.makeSolidColor(3, 204, judgementsColors["miss"]);
+        hitErrorMeterMissesLine.scale.y *= meterLengthMultiplier;
+        hitErrorMeterMissesLine.scrollFactor.set(0, 0);
+
+        var hitErrorMeterShitsLine:FunkinSprite = new FunkinSprite(1231.5, 264);
+        hitErrorMeterShitsLine.makeSolidColor(3, 192, judgementsColors["shit"]);
+        hitErrorMeterShitsLine.scale.y *= meterLengthMultiplier;
+        hitErrorMeterShitsLine.scrollFactor.set(0, 0);
+
+        var hitErrorMeterBadsLine:FunkinSprite = new FunkinSprite(1231.5, 279);
+        hitErrorMeterBadsLine.makeSolidColor(3, 162, judgementsColors["bad"]);
+        hitErrorMeterBadsLine.scale.y *= meterLengthMultiplier;
+        hitErrorMeterBadsLine.scrollFactor.set(0, 0);
+
+        var hitErrorMeterGoodsLine:FunkinSprite = new FunkinSprite(1231.5, 306);
+        hitErrorMeterGoodsLine.makeSolidColor(3, 108, judgementsColors["good"]);
+        hitErrorMeterGoodsLine.scale.y *= meterLengthMultiplier;
+        hitErrorMeterGoodsLine.scrollFactor.set(0, 0);
+
+        var hitErrorMeterSicksLine:FunkinSprite = new FunkinSprite(1231.5, 333);
+        hitErrorMeterSicksLine.makeSolidColor(3, 54, judgementsColors["sick"]);
+        hitErrorMeterSicksLine.scale.y *= meterLengthMultiplier;
+        hitErrorMeterSicksLine.scrollFactor.set(0, 0);
+
+        var hitErrorMeterBlack:FunkinSprite = new FunkinSprite(1215, 241.5);
+        hitErrorMeterBlack.makeSolidColor(36, 237, 0xFF000000);
+        hitErrorMeterBlack.scale.y = hitErrorMeterMissesLine.scale.y + 16.5;
+        hitErrorMeterBlack.scrollFactor.set(0, 0);
+
+        var hitErrorMeterCenterLine:FunkinSprite = new FunkinSprite(1228.5, 359.5);
+        hitErrorMeterCenterLine.makeSolidColor(9, 1, 0xFFFFFFFF);
+        hitErrorMeterCenterLine.scrollFactor.set(0, 0);
+
+        var result:Array<FunkinSprite> = [hitErrorMeterBlack, hitErrorMeterMissesLine, hitErrorMeterShitsLine, hitErrorMeterBadsLine, hitErrorMeterGoodsLine, hitErrorMeterSicksLine, hitErrorMeterCenterLine];
+        return result.copy();
+    }
+
     function buildJudgementSprite(color:FlxColor):FunkinSprite
     {
         var judgementSprite:FunkinSprite = FunkinSprite.create(0, 0, "judgementSprite");
@@ -140,7 +223,7 @@ class HitErrorMeter extends Module
         return judgementSprite;
     }
 
-    function movePointerByHitDiff(hitDiff:Float, useTween:Bool = True):Void
+    function movePointerByHitDiff(hitDiff:Float):Void
     {
         if (save.data.enableHitErrorMeter == false)
             return;
@@ -148,7 +231,7 @@ class HitErrorMeter extends Module
         if (hitErrorMeterPointerTween != null)
             hitErrorMeterPointerTween.cancel();
 
-        var targetY:Float = (FlxG.height / 2) - (hitErrorMeterPointer.height / 2) - (0.6 * hitDiff);
+        var targetY:Float = (FlxG.height / 2) - (hitErrorMeterPointer.height / 2) - (0.6 * meterLengthMultiplier * hitDiff);
         hitErrorMeterPointerTween = FlxTween.tween(hitErrorMeterPointer, {y: targetY}, 0.05,
             {
                 ease: FlxEase.sineOut,
@@ -164,10 +247,14 @@ class HitErrorMeter extends Module
         if (playState == null || save.data.enableHitErrorMeter == false)
             return;
 
-        var judgementSprite:FunkinSprite = buildJudgementSprite(JUDGEMENTS_COLORS[judgement]);
+        var judgementColor:FlxColor = 0xFFFFFFFF;
+        if (save.data.colorizeJudgements != false)
+            judgementColor = judgementsColors[judgement];
+
+        var judgementSprite:FunkinSprite = buildJudgementSprite(judgementColor);
         judgementSprite.x = 1218;
-        judgementSprite.y = (FlxG.height / 2) - (judgementSprite.height / 2) - (0.6 * hitDiff);
-        judgementSprite.zIndex = 853;
+        judgementSprite.y = (FlxG.height / 2) - (judgementSprite.height / 2) - (0.6 * meterLengthMultiplier * hitDiff);
+        judgementSprite.zIndex = 852;
         judgementSprite.cameras = [playState.camHUD];
 
         playState.add(judgementSprite);
@@ -180,14 +267,18 @@ class HitErrorMeter extends Module
         var judgementTween:FlxTween;
         if (!hasJudgementFading(judgement))
         {
-            judgementTween = FlxTween.color(judgementSprite, 0.5, judgementSprite.color, 0xFFFFFFFF,
-                {
-                    startDelay: (fadeDuration - 0.5),
-                    onComplete: function(_)
+            if (save.data.colorizeJudgements != false)
+            {
+                judgementTween = FlxTween.color(judgementSprite, 0.5, judgementSprite.color, 0xFFFFFFFF,
                     {
-                        hitErrorMeterJudgementsTweens.remove(judgementTween);
-                    }
-                });
+                        startDelay: (fadeDuration - 0.5),
+                        onComplete: function(_)
+                        {
+                            hitErrorMeterJudgementsTweens.remove(judgementTween);
+                        }
+                    });
+                hitErrorMeterJudgementsTweens.push(judgementTween);
+            }
         }
         else
         {
@@ -202,8 +293,8 @@ class HitErrorMeter extends Module
                         judgementSprite.destroy();
                     }
                 });
+            hitErrorMeterJudgementsTweens.push(judgementTween);
         }
-        hitErrorMeterJudgementsTweens.push(judgementTween);
 
         movePointerByHitDiff(hitDiff);
     }
@@ -307,7 +398,7 @@ class HitErrorMeter extends Module
 
         if (playState != null)
         {
-            displayJudgement("miss", 170);
+            displayJudgement("miss", LATE_MISS_JUDGEMENT_HIT_DIFF);
         }
     }
 
@@ -317,7 +408,7 @@ class HitErrorMeter extends Module
 
         if (playState != null)
         {
-            displayJudgement("miss", -170);
+            displayJudgement("miss", EARLY_MISS_JUDGEMENT_HIT_DIFF);
         }
     }
 
@@ -325,9 +416,12 @@ class HitErrorMeter extends Module
     {
         super.onNoteMiss(event);
 
-        if (playState != null && save.data.displayGhostMisses == true)
+        if (playState != null)
         {
-            displayJudgement("miss", -170);
+            if (save.data.displayGhostMisses == true)
+            {
+                displayJudgement("miss", EARLY_MISS_JUDGEMENT_HIT_DIFF);
+            }
         }
     }
 }

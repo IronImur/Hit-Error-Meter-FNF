@@ -21,6 +21,15 @@ class HitErrorMeterPrefs extends Module
         if (save.data.enableHitErrorMeter == null)
             save.data.enableHitErrorMeter = true;
 
+        if (save.data.meterColorPalette == null)
+            save.data.meterColorPalette = "FNF";
+
+        if (save.data.meterLength == null)
+            save.data.meterLength = 60;
+
+        if (save.data.colorizeJudgements == null)
+            save.data.colorizeJudgements = true;
+
         if (save.data.fadingJudgements == null)
             save.data.fadingJudgements = "All";
 
@@ -47,24 +56,51 @@ class HitErrorMeterPrefs extends Module
                     save.flush();
                 }, save.data.enableHitErrorMeter);
 
+                preferencesMenu.createPrefItemEnum("Color Palette", "Palette of hit error meter and its judgements.", [
+                    "Funkin" => "FNF",
+                    "ADOFAI" => "ADOFAI",
+                    "osu!mania" => "osu"
+                ], function(key:String, value:String):Void {
+                    save.data.meterColorPalette = value;
+                    save.flush();
+                }, switch(save.data.meterColorPalette)
+                {
+                    case "FNF": "Funkin";
+                    case "ADOFAI": "ADOFAI";
+                    case "osu": "osu!mania";
+                });
+
+                preferencesMenu.createPrefItemNumber("Meter Length", "Length of hit error meter (in percents of screen height).", function(value:Float):Void {
+                    save.data.meterLength = value;
+                    save.flush();
+                }, function(value:Float):String {
+                    return (value + "%");
+                }, save.data.meterLength, 30, 90, 10, 0);
+
+                preferencesMenu.createPrefItemCheckbox("Colorize Judgements", "If disabled, all judgements will have white color at the time of popping up.", function(value:Bool):Void {
+                    save.data.colorizeJudgements = value;
+                    save.flush();
+                }, save.data.colorizeJudgements);
+
                 preferencesMenu.createPrefItemEnum("Fade Judgements", "Judgements that will be faded after a while during the song.", [
-                    "Only sicks" => "OnlySicks",
+                    "Only Sick!!" => "OnlySicks",
                     "Nothing" => "Nothing",
-                    "Sicks and goods" => "OnlySicksAndGoods",
+                    "Sick!! and Good!" => "OnlySicksAndGoods",
                     "All" => "All"
                 ], function(key:String, value:String):Void {
                     save.data.fadingJudgements = value;
                     save.flush();
                 }, switch(save.data.fadingJudgements)
                 {
-                    case "OnlySicks": "Only sicks";
+                    case "OnlySicks": "Only Sick!!";
                     case "Nothing": "Nothing";
-                    case "OnlySicksAndGoods": "Only sicks and goods";
+                    case "OnlySicksAndGoods": "Only Sick!! and Good!";
                     case "All": "All";
                 });
 
                 preferencesMenu.createPrefItemNumber("Fade Duration", "Duration of judgements' fading (in seconds).", function(value:Float):Void {
                     save.data.fadeDuration = value;
+                    save.flush();
                 }, function(value:Float):String {
                     return (value + "s");
                 }, save.data.fadeDuration, 1.0, 5.0, 0.5, 1);
