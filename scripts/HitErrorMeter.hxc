@@ -338,14 +338,17 @@ class HitErrorMeter extends Module
 
         if (playState != null)
         {
-            if (hitErrorMeterPointerTween != null)
+            if (save.data.enableHitErrorMeter != false)
             {
-                hitErrorMeterPointerTween.active = false;
-            }
+                if (hitErrorMeterPointerTween != null)
+                {
+                    hitErrorMeterPointerTween.active = false;
+                }
 
-            for (judgementTween in hitErrorMeterJudgementsTweens)
-            {
-                judgementTween.active = false;
+                for (judgementTween in hitErrorMeterJudgementsTweens)
+                {
+                    judgementTween.active = false;
+                }
             }
         }
     }
@@ -356,14 +359,17 @@ class HitErrorMeter extends Module
 
         if (playState != null)
         {
-            if (hitErrorMeterPointerTween != null)
+            if (save.data.enableHitErrorMeter != false)
             {
-                hitErrorMeterPointerTween.active = true;
-            }
+                if (hitErrorMeterPointerTween != null)
+                {
+                    hitErrorMeterPointerTween.active = true;
+                }
 
-            for (judgementTween in hitErrorMeterJudgementsTweens)
-            {
-                judgementTween.active = true;
+                for (judgementTween in hitErrorMeterJudgementsTweens)
+                {
+                    judgementTween.active = true;
+                }
             }
         }
     }
