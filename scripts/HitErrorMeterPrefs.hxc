@@ -3,6 +3,7 @@ import funkin.modding.module.Module;
 import funkin.ui.options.OptionsState;
 import funkin.ui.options.PreferencesMenu;
 
+import flixel.FlxSprite;
 import flixel.util.FlxSave;
 
 import Std;
@@ -42,6 +43,16 @@ class HitErrorMeterPrefs extends Module
         save.flush();
     }
 
+    function createPrefItemsHeader(preferencesMenu:PreferencesMenu, headerName:String, headerDesc:String, yOffset:Int = 0):Void
+    {
+        if (preferencesMenu == null)
+            return;
+
+        preferencesMenu.items.createItem(10, (120 * preferencesMenu.items.length) + 30 + yOffset, headerName, "bold", function() {}, true);
+        preferencesMenu.preferenceItems.add(new FlxSprite().makeGraphic(0, 0, 0x00000000));
+        preferencesMenu.preferenceDesc.push(headerDesc);
+    }
+
     override function onStateChangeEnd(event:StateChangeScriptEvent):Void
     {
         super.onStateChangeEnd(event);
@@ -51,6 +62,8 @@ class HitErrorMeterPrefs extends Module
             var preferencesMenu:PreferencesMenu = event.targetState.optionsCodex.pages.get("preferences");
             if (preferencesMenu != null)
             {
+                createPrefItemsHeader(preferencesMenu, "- Hit Error Meter -", "Customize the hit error meter with the settings below.", 10);
+
                 preferencesMenu.createPrefItemCheckbox("Enable Hit Error Meter", "If disabled, hit error meter will be hidden from the screen.", function(value:Bool):Void {
                     save.data.enableHitErrorMeter = value;
                     save.flush();
@@ -109,6 +122,8 @@ class HitErrorMeterPrefs extends Module
                     save.data.displayGhostMisses = value;
                     save.flush();
                 }, save.data.displayGhostMisses);
+
+                createPrefItemsHeader(preferencesMenu, "- Hit Error Meter -", "Customize the hit error meter with the settings above.", -10);
             }
         }
     }
