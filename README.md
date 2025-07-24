@@ -19,8 +19,13 @@ This mod implements simple **HIT ERROR METER** to the game. It also includes sev
 - [Friday Night Funkin'](https://ninja-muffin24.itch.io/funkin) v0.7.3.
 
 ## Installation
-1. [Download](https://gamebanana.com/mods/597782) the mod;
-2. 	- **For PC version:** Go to FNF's source path;
-	- **For mobile version:** Open data folder through the options menu;
-3. Move the downloaded archive to *mods* folder;
-4. Run the game and enjoy!
+- **For PC version**:
+	1. [Download](https://gamebanana.com/mods/597782) the mod;
+	2. Go to FNF's source path;
+	3. Move the downloaded archive to *mods* folder;
+	4. Run the game and enjoy!
+- **For mobile version**:
+	1. [Download](https://gamebanana.com/mods/597782) the mod;
+	2. Open data folder through the options menu;
+	3. Unzip and move the downloaded archive to *mods* folder;
+	4. Run the game and enjoy!
