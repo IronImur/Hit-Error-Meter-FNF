@@ -2,10 +2,10 @@ import funkin.graphics.FunkinSprite;
 import funkin.modding.events.ScriptEvent;
 import funkin.modding.module.Module;
 import funkin.play.PlayState;
+import funkin.save.Save;
 
 import flixel.tweens.FlxEase;
 import flixel.tweens.FlxTween;
-import flixel.util.FlxSave;
 import flixel.FlxG;
 
 import Std;
@@ -44,8 +44,8 @@ class HitErrorMeter extends Module
 
     var hitErrorMeterPointerTween:FlxTween;
     var hitErrorMeterJudgementsTweens:Array<FlxTween>;
-
-    var save:FlxSave;
+    
+    var modOptions:Map<String, Dynamic>;
 
     var meterLengthMultiplier:Float;
     var judgementsColors:Map<String, FlxColor>;
@@ -54,28 +54,20 @@ class HitErrorMeter extends Module
     {
         super("Hit Error Meter", 1);
 
-        save = new FlxSave();
-        save.bind("HitErrorMeterPreferences", "IronImur");
+        modOptions = Save.instance.modOptions.get("HitErrorMeterPreferences");
     }
 
     function initHitErrorMeter():Void
     {
-        if (playState == null || save.data.enableHitErrorMeter == false)
+        if (playState == null || !modOptions.get("isEnabled"))
             return;
         
-        meterLengthMultiplier = 1.0;
-        if (save.data.meterLength != null)
-            meterLengthMultiplier = save.data.meterLength / 30.0;
-
-        judgementsColors = JUDGEMENTS_COLORS_FNF;
-        if (save.data.meterColorPalette != null)
-        {
-            judgementsColors = switch(save.data.meterColorPalette) {
-                case "osu": JUDGEMENTS_COLORS_OSU;
-                case "ADOFAI": JUDGEMENTS_COLORS_ADOFAI;
-                default: JUDGEMENTS_COLORS_FNF;
-            };
-        }
+        meterLengthMultiplier = (modOptions.get("meterLength") / 30.0) * (FlxG.height / 720.0);
+        judgementsColors = switch(modOptions.get("meterColorPalette")) {
+            case "osu": JUDGEMENTS_COLORS_OSU;
+            case "ADOFAI": JUDGEMENTS_COLORS_ADOFAI;
+            default: JUDGEMENTS_COLORS_FNF;
+        };
 
         hitErrorMeterJudgements = [];
 
@@ -90,7 +82,7 @@ class HitErrorMeter extends Module
             playState.add(hitErrorMeterSprite);
         }
 
-        hitErrorMeterPointer = FunkinSprite.create(1240, 0, "hitErrorMeterPointer");
+        hitErrorMeterPointer = FunkinSprite.create(FlxG.width - 40, 0, "hitErrorMeterPointer");
         hitErrorMeterPointer.scale.set(0.6, 0.6);
         hitErrorMeterPointer.updateHitbox();
         hitErrorMeterPointer.y = (FlxG.height / 2) - (hitErrorMeterPointer.height / 2);
@@ -107,7 +99,7 @@ class HitErrorMeter extends Module
 
     function cleanup():Void
     {
-        if (playState == null || save.data.enableHitErrorMeter == false)
+        if (playState == null || !modOptions.get("isEnabled"))
             return;
 
         if (hitErrorMeterBG.length > 0)
@@ -137,7 +129,7 @@ class HitErrorMeter extends Module
 
     function clearJudgements():Void
     {
-        if (save.data.enableHitErrorMeter == false)
+        if (!modOptions.get("isEnabled"))
             return;
 
         if (hitErrorMeterJudgements.length > 0)
@@ -159,11 +151,7 @@ class HitErrorMeter extends Module
 
     function hasJudgementFading(judgement:String):Bool
     {
-        var fadingJudgementsPreference:String = save.data.fadingJudgements;
-        if (fadingJudgementsPreference == null)
-            fadingJudgementsPreference = "All";
-        
-        var fadingJudgements:Array<String> = switch(fadingJudgementsPreference) {
+        var fadingJudgements:Array<String> = switch(modOptions.get("fadingJudgements")) {
             case "Nothing": [];
             case "OnlySicks": ["sick"];
             case "OnlySicksAndGoods": ["sick", "good"];
@@ -174,37 +162,37 @@ class HitErrorMeter extends Module
 
     function buildHitErrorMeterBG():Array<FunkinSprite>
     {
-        var hitErrorMeterMissesLine:FunkinSprite = new FunkinSprite(1231.5, 258);
+        var hitErrorMeterMissesLine:FunkinSprite = new FunkinSprite(FlxG.width - 48.5, (FlxG.height / 2) - 102);
         hitErrorMeterMissesLine.makeSolidColor(3, 204, judgementsColors["miss"]);
         hitErrorMeterMissesLine.scale.y *= meterLengthMultiplier;
         hitErrorMeterMissesLine.scrollFactor.set(0, 0);
 
-        var hitErrorMeterShitsLine:FunkinSprite = new FunkinSprite(1231.5, 264);
+        var hitErrorMeterShitsLine:FunkinSprite = new FunkinSprite(FlxG.width - 48.5, (FlxG.height / 2) - 96);
         hitErrorMeterShitsLine.makeSolidColor(3, 192, judgementsColors["shit"]);
         hitErrorMeterShitsLine.scale.y *= meterLengthMultiplier;
         hitErrorMeterShitsLine.scrollFactor.set(0, 0);
 
-        var hitErrorMeterBadsLine:FunkinSprite = new FunkinSprite(1231.5, 279);
+        var hitErrorMeterBadsLine:FunkinSprite = new FunkinSprite(FlxG.width - 48.5, (FlxG.height / 2) - 81);
         hitErrorMeterBadsLine.makeSolidColor(3, 162, judgementsColors["bad"]);
         hitErrorMeterBadsLine.scale.y *= meterLengthMultiplier;
         hitErrorMeterBadsLine.scrollFactor.set(0, 0);
 
-        var hitErrorMeterGoodsLine:FunkinSprite = new FunkinSprite(1231.5, 306);
+        var hitErrorMeterGoodsLine:FunkinSprite = new FunkinSprite(FlxG.width - 48.5, (FlxG.height / 2) - 54);
         hitErrorMeterGoodsLine.makeSolidColor(3, 108, judgementsColors["good"]);
         hitErrorMeterGoodsLine.scale.y *= meterLengthMultiplier;
         hitErrorMeterGoodsLine.scrollFactor.set(0, 0);
 
-        var hitErrorMeterSicksLine:FunkinSprite = new FunkinSprite(1231.5, 333);
+        var hitErrorMeterSicksLine:FunkinSprite = new FunkinSprite(FlxG.width - 48.5, (FlxG.height / 2) - 27);
         hitErrorMeterSicksLine.makeSolidColor(3, 54, judgementsColors["sick"]);
         hitErrorMeterSicksLine.scale.y *= meterLengthMultiplier;
         hitErrorMeterSicksLine.scrollFactor.set(0, 0);
 
-        var hitErrorMeterBlack:FunkinSprite = new FunkinSprite(1215, 241.5);
+        var hitErrorMeterBlack:FunkinSprite = new FunkinSprite(FlxG.width - 65, (FlxG.height / 2) - 118.5);
         hitErrorMeterBlack.makeSolidColor(36, 237, 0xFF000000);
         hitErrorMeterBlack.scale.y = hitErrorMeterMissesLine.scale.y + 16.5;
         hitErrorMeterBlack.scrollFactor.set(0, 0);
 
-        var hitErrorMeterCenterLine:FunkinSprite = new FunkinSprite(1228.5, 359.5);
+        var hitErrorMeterCenterLine:FunkinSprite = new FunkinSprite(FlxG.width - 51.5, (FlxG.height / 2) - 0.5);
         hitErrorMeterCenterLine.makeSolidColor(9, 1, 0xFFFFFFFF);
         hitErrorMeterCenterLine.scrollFactor.set(0, 0);
 
@@ -225,7 +213,7 @@ class HitErrorMeter extends Module
 
     function movePointerByHitDiff(hitDiff:Float):Void
     {
-        if (save.data.enableHitErrorMeter == false)
+        if (!modOptions.get("isEnabled"))
             return;
 
         if (hitErrorMeterPointerTween != null)
@@ -244,15 +232,15 @@ class HitErrorMeter extends Module
 
     function displayJudgement(judgement:String, hitDiff:Float):Void
     {
-        if (playState == null || save.data.enableHitErrorMeter == false)
+        if (playState == null || !modOptions.get("isEnabled"))
             return;
 
         var judgementColor:FlxColor = 0xFFFFFFFF;
-        if (save.data.colorizeJudgements != false)
+        if (modOptions.get("colorizeJudgements"))
             judgementColor = judgementsColors[judgement];
 
         var judgementSprite:FunkinSprite = buildJudgementSprite(judgementColor);
-        judgementSprite.x = 1218;
+        judgementSprite.x = FlxG.width - 62;
         judgementSprite.y = (FlxG.height / 2) - (judgementSprite.height / 2) - (0.6 * meterLengthMultiplier * hitDiff);
         judgementSprite.zIndex = 852;
         judgementSprite.cameras = [playState.camHUD];
@@ -260,14 +248,12 @@ class HitErrorMeter extends Module
         playState.add(judgementSprite);
         hitErrorMeterJudgements.push(judgementSprite);
 
-        var fadeDuration:Float = save.data.fadeDuration;
-        if (fadeDuration == null)
-            fadeDuration = 3.0;
+        var fadeDuration:Float = modOptions.get("fadeDuration");
 
         var judgementTween:FlxTween;
         if (!hasJudgementFading(judgement))
         {
-            if (save.data.colorizeJudgements != false)
+            if (modOptions.get("colorizeJudgements"))
             {
                 judgementTween = FlxTween.color(judgementSprite, 0.5, judgementSprite.color, 0xFFFFFFFF,
                     {
@@ -338,7 +324,7 @@ class HitErrorMeter extends Module
 
         if (playState != null)
         {
-            if (save.data.enableHitErrorMeter != false)
+            if (modOptions.get("isEnabled"))
             {
                 if (hitErrorMeterPointerTween != null)
                 {
@@ -359,7 +345,7 @@ class HitErrorMeter extends Module
 
         if (playState != null)
         {
-            if (save.data.enableHitErrorMeter != false)
+            if (modOptions.get("isEnabled"))
             {
                 if (hitErrorMeterPointerTween != null)
                 {
@@ -424,7 +410,7 @@ class HitErrorMeter extends Module
 
         if (playState != null)
         {
-            if (save.data.displayGhostMisses == true)
+            if (modOptions.get("displayGhostMisses"))
             {
                 displayJudgement("miss", EARLY_MISS_JUDGEMENT_HIT_DIFF);
             }

@@ -1,44 +1,46 @@
 import funkin.modding.events.ScriptEvent;
 import funkin.modding.module.Module;
+import funkin.save.Save;
 import funkin.ui.options.OptionsState;
 import funkin.ui.options.PreferencesMenu;
 
 import flixel.FlxSprite;
-import flixel.util.FlxSave;
 
 import Std;
 
 class HitErrorMeterPrefs extends Module
 {
-    var save:FlxSave;
+    var save:Save;
+    var modOptions:Map<String, Dynamic>;
 
     function new():Void
     {
         super("Hit Error Meter Preferences", 0);
 
-        save = new FlxSave();
-        save.bind("HitErrorMeterPreferences", "IronImur");
+        var defaultPrefs:Map<String, Dynamic> = [
+            "isEnabled" => true,
 
-        if (save.data.enableHitErrorMeter == null)
-            save.data.enableHitErrorMeter = true;
+            "meterColorPalette" => "FNF",
+            "meterLength" => 60,
 
-        if (save.data.meterColorPalette == null)
-            save.data.meterColorPalette = "FNF";
+            "colorizeJudgements" => true,
+            "fadingJudgements" => "All",
+            "fadeDuration" => 3.0,
 
-        if (save.data.meterLength == null)
-            save.data.meterLength = 60;
+            "displayGhostMisses" => false
+        ];
 
-        if (save.data.colorizeJudgements == null)
-            save.data.colorizeJudgements = true;
+        save = Save.instance;
+        if (save.modOptions.get("HitErrorMeterPreferences") == null)
+            save.modOptions.set("HitErrorMeterPreferences", defaultPrefs);
 
-        if (save.data.fadingJudgements == null)
-            save.data.fadingJudgements = "All";
+        modOptions = save.modOptions.get("HitErrorMeterPreferences");
 
-        if (save.data.fadeDuration == null)
-            save.data.fadeDuration = 3.0;
-
-        if (save.data.displayGhostMisses == null)
-            save.data.displayGhostMisses = false;
+        for (prefName in defaultPrefs.keys())
+        {
+            if (!modOptions.exists(prefName))
+                modOptions.set(prefName, defaultPrefs[prefName]);
+        }
 
         save.flush();
     }
@@ -65,18 +67,18 @@ class HitErrorMeterPrefs extends Module
                 createPrefItemsHeader(preferencesMenu, "- Hit Error Meter -", "Customize the hit error meter with the settings below.", 10);
 
                 preferencesMenu.createPrefItemCheckbox("Enable Hit Error Meter", "If disabled, hit error meter will be hidden from the screen.", function(value:Bool):Void {
-                    save.data.enableHitErrorMeter = value;
+                    modOptions.set("isEnabled", value);
                     save.flush();
-                }, save.data.enableHitErrorMeter);
+                }, modOptions.get("isEnabled"));
 
                 preferencesMenu.createPrefItemEnum("Color Palette", "Palette of hit error meter and its judgements.", [
                     "Funkin" => "FNF",
                     "ADOFAI" => "ADOFAI",
                     "osu!mania" => "osu"
                 ], function(key:String, value:String):Void {
-                    save.data.meterColorPalette = value;
+                    modOptions.set("meterColorPalette", value);
                     save.flush();
-                }, switch(save.data.meterColorPalette)
+                }, switch(modOptions.get("meterColorPalette"))
                 {
                     case "FNF": "Funkin";
                     case "ADOFAI": "ADOFAI";
@@ -84,16 +86,16 @@ class HitErrorMeterPrefs extends Module
                 });
 
                 preferencesMenu.createPrefItemNumber("Meter Length", "Length of hit error meter (in percents of screen height).", function(value:Float):Void {
-                    save.data.meterLength = value;
+                    modOptions.set("meterLength", value);
                     save.flush();
                 }, function(value:Float):String {
                     return (value + "%");
-                }, save.data.meterLength, 30, 90, 10, 0);
+                }, modOptions.get("meterLength"), 30, 90, 10, 0);
 
                 preferencesMenu.createPrefItemCheckbox("Colorize Judgements", "If disabled, all judgements will have white color at the time of popping up.", function(value:Bool):Void {
-                    save.data.colorizeJudgements = value;
+                    modOptions.set("colorizeJudgements", value);
                     save.flush();
-                }, save.data.colorizeJudgements);
+                }, modOptions.get("colorizeJudgements"));
 
                 preferencesMenu.createPrefItemEnum("Fade Judgements", "Judgements that will be faded after a while during the song.", [
                     "Only Sick!!" => "OnlySicks",
@@ -101,9 +103,9 @@ class HitErrorMeterPrefs extends Module
                     "Sick!! and Good!" => "OnlySicksAndGoods",
                     "All" => "All"
                 ], function(key:String, value:String):Void {
-                    save.data.fadingJudgements = value;
+                    modOptions.set("fadingJudgements", value);
                     save.flush();
-                }, switch(save.data.fadingJudgements)
+                }, switch(modOptions.get("fadingJudgements"))
                 {
                     case "OnlySicks": "Only Sick!!";
                     case "Nothing": "Nothing";
@@ -112,19 +114,21 @@ class HitErrorMeterPrefs extends Module
                 });
 
                 preferencesMenu.createPrefItemNumber("Fade Duration", "Duration of judgements' fading (in seconds).", function(value:Float):Void {
-                    save.data.fadeDuration = value;
+                    modOptions.set("fadeDuration", value);
                     save.flush();
                 }, function(value:Float):String {
                     return (value + "s");
-                }, save.data.fadeDuration, 1.0, 5.0, 0.5, 1);
+                }, modOptions.get("fadeDuration"), 1.0, 5.0, 0.5, 1);
 
                 preferencesMenu.createPrefItemCheckbox("Display Ghost Misses", "If enabled, your ghost misses will be displayed on the meter.", function(value:Bool):Void {
-                    save.data.displayGhostMisses = value;
+                    modOptions.set("displayGhostMisses", value);
                     save.flush();
-                }, save.data.displayGhostMisses);
+                }, modOptions.get("displayGhostMisses"));
 
                 createPrefItemsHeader(preferencesMenu, "- Hit Error Meter -", "Customize the hit error meter with the settings above.", -10);
             }
+
+            save.flush();
         }
     }
 }
